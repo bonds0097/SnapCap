@@ -12,12 +12,12 @@ import android.util.Log;
 public class SnapSaver {
     static final String TAG = "SnapCap-Saver";
     
-    static void SaveSnap(Bitmap snapImage) {
+    static void SaveSnap(Bitmap snapImage, String sender) {
         String fileName = System.currentTimeMillis() + ".jpg";
         
         String extRoot = Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_PICTURES).toString();
-        File path = new File(extRoot + "/snapchat");
+        File path = new File(extRoot + "/snapchat/" + sender);
         File snapFile = new File(path, fileName);
         
 

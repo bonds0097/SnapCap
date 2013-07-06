@@ -9,6 +9,7 @@ import com.saurik.substrate.MS;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.util.Log;
+import android.view.View;
 
 public class Main {
     static final String TAG = "SnapCap";
@@ -17,43 +18,45 @@ public class Main {
         Log.w(TAG, "Extension initialized.");
         
         // Load FeedActivity class.
-        MS.hookClassLoad("com.snapchat.android.FeedActivity", new MS.ClassLoadHook() {
+        MS.hookClassLoad("com.snapchat.android.ui.SnapView", new MS.ClassLoadHook() {
             
             @SuppressWarnings({ "unchecked", "rawtypes" })
             @Override
-            public void classLoaded(Class<?> feed) {
-                Logging.ClassLoaded(TAG, feed);
+            public void classLoaded(Class<?> snapView) {
+                Logging.ClassLoaded(TAG, snapView);
                 
                 // Hook into the ShowImage Method.
                 Method showImage;
                 
                 try {
-                    showImage = feed.getDeclaredMethod("showImage");
-                    Logging.MethodFound(TAG, feed, showImage);
+                    showImage = snapView.getDeclaredMethod("showImage");
+                    Logging.MethodFound(TAG, snapView, showImage);
                 } catch (NoSuchMethodException e) {
                     showImage = null;
-                    Logging.MethodNotFound(TAG, feed, "showImage");
+                    Logging.MethodNotFound(TAG, snapView, "showImage");
                 }
                 
                 if (showImage != null) {
                     final MS.MethodPointer old = new MS.MethodPointer();
                     final String methodName = showImage.getName();
                     
-                    MS.hookMethod(feed, showImage, new MS.MethodHook() {
+                    MS.hookMethod(snapView, showImage, new MS.MethodHook() {
 
                         @Override
                         public Object invoked(Object _this, Object... args)
                                 throws Throwable {
                             Logging.HookingIntoMethodWithArgs(TAG, methodName, _this, args);
                             try {
-                                Field mClickedSnap = _this.getClass().getDeclaredField("mClickedSnap");
-                                Method getImageBitmap = mClickedSnap.getType().getDeclaredMethod(
+                                Field mSnap = _this.getClass().getDeclaredField("mSnap");
+                                Method getImageBitmap = mSnap.getType().getDeclaredMethod(
                                         "getImageBitmap", Context.class);
-                                Method getApplicationContext = Context.class.getDeclaredMethod(
-                                        "getApplicationContext");
+                                Method getContext = View.class.getDeclaredMethod(
+                                        "getContext");
                                 Bitmap snapImage = (Bitmap)getImageBitmap.invoke(
-                                        mClickedSnap.get(_this), getApplicationContext.invoke(_this));
-                                SnapSaver.SaveSnap(snapImage);
+                                        mSnap.get(_this), getContext.invoke(_this));
+                                Field mSender = mSnap.getType().getDeclaredField("mSender");
+                                String sender = (String)mSender.get(mSnap.get(_this));
+                                SnapSaver.SaveSnap(snapImage, sender);
                             } catch (NoSuchFieldException e) {
                                 Log.e(TAG, "Could not find field.\n" + e.toString());
                             } catch (NoSuchMethodException e) {
